@@ -31,9 +31,15 @@ class MainActivity : AppCompatActivity(), MainView {
     private fun configureList() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
+        adapter.clickSubject.hide()
+            .subscribe { presenter.aaa(it) }
     }
 
     override fun updateList(currencies: List<String>) {
         adapter.items = currencies
+    }
+
+    override fun updateRate(rates: List<String>) {
+
     }
 }
