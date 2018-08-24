@@ -35,11 +35,7 @@ class MainActivity : AppCompatActivity(), MainView {
             .subscribe { presenter.aaa(it) }
     }
 
-    override fun updateList(currencies: List<String>) {
+    override fun updateList(currencies: List<CurrencyItem>) {
         adapter.items = currencies
-    }
-
-    override fun updateRate(rates: List<String>) {
-
     }
 }

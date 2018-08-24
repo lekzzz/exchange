@@ -4,7 +4,6 @@ import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,26 +14,28 @@ import java.math.RoundingMode
 
 class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
 
-    var items = emptyList<String>()
+    var items = emptyList<CurrencyItem>()
         set(value) {
             val oldItems = field
             field = value
             val diffCallback = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
                 override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-                    oldItems[oldItemPosition] == value[newItemPosition]
+                    oldItems[oldItemPosition].key == value[newItemPosition].key
 
                 override fun getOldListSize() = oldItems.size
 
                 override fun getNewListSize() = value.size
 
                 override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-                    oldItems[oldItemPosition] == value[newItemPosition]
+                    oldItems[oldItemPosition].rate.compareTo(value[newItemPosition].rate) == 0
             })
             diffCallback.dispatchUpdatesTo(this)
+//            ratesSubject.onNext(value)
         }
 
     val clickSubject = BehaviorSubject.create<Int>()
     val editableCurrenySubject = BehaviorSubject.create<Pair<String, BigDecimal>>()
+//    val ratesSubject = BehaviorSubject.createDefault()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_currency, parent, false))
@@ -43,7 +44,7 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(holder.adapterPosition)
-        val watcher = Watcher((items[holder.adapterPosition]))
+        val watcher = Watcher(items[holder.adapterPosition].key)
         holder.etValue.addTextChangedListener(watcher)
         holder.etValue.setOnFocusChangeListener { v, hasFocus ->
             if (hasFocus) clickSubject.onNext(holder.adapterPosition)
@@ -67,7 +68,8 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
     inner class ViewHolder constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
         val etValue: TextView = itemView.findViewById(R.id.etValue)
-        private val rate: BigDecimal = Math.random().toBigDecimal()
+        var rate: BigDecimal = BigDecimal.ONE
+        private var pos: Int = 0
 
         init {
             editableCurrenySubject
@@ -78,8 +80,9 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
         }
 
         fun bind(position: Int) {
-            Log.d("bind", "rate = $rate")
-            tvTitle.text = items[position]
+            this.pos = position
+            tvTitle.text = items[position].key
+            rate = items[position].rate
         }
     }
 }

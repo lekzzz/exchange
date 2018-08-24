@@ -1,6 +1,5 @@
 package com.arudanovsky.exchange
 
 interface MainView {
-    fun updateList(currencies: List<String>)
-    fun updateRate(rates: List<String>)
+    fun updateList(currencies: List<CurrencyItem>)
 }
