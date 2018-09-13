@@ -1,4 +1,4 @@
-package com.arudanovsky.exchange
+package com.arudanovsky.exchange.data
 
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer

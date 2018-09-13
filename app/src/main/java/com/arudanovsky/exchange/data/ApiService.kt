@@ -1,4 +1,4 @@
-package com.arudanovsky.exchange
+package com.arudanovsky.exchange.data
 
 import io.reactivex.Observable
 import retrofit2.http.GET

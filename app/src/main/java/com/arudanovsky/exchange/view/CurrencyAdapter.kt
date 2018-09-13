@@ -1,4 +1,4 @@
-package com.arudanovsky.exchange
+package com.arudanovsky.exchange.view
 
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
@@ -8,14 +8,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import com.arudanovsky.exchange.domain.CurrencyItem
+import com.arudanovsky.exchange.R
+import com.arudanovsky.exchange.utils.formatMultipliedDecimals
+import com.arudanovsky.exchange.utils.toBigDecimal
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
 import java.math.BigDecimal
-import java.math.RoundingMode
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
@@ -48,9 +50,9 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
     override fun getItemCount() = items.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        //todo use item
-        holder.bind(holder.adapterPosition)
-        val watcher = Watcher(items[holder.adapterPosition].key)
+        val currency = items[holder.adapterPosition]
+        holder.bind(currency)
+        val watcher = Watcher(currency.key)
 
         holder.etValue.addTextChangedListener(watcher)
         holder.etValue.setOnFocusChangeListener { _, hasFocus ->
@@ -58,7 +60,7 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
             if (hasFocus) {
                 editableCurrenySubject.onNext(
                     Pair(
-                        items[holder.adapterPosition].key,
+                        currency.key,
                         holder.etValue.text.toBigDecimal()
                     )
                 )
@@ -66,12 +68,12 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
             }
         }
 
-        if (items[holder.adapterPosition].key == editableCurrenySubject.value?.first) {
+        if (currency.key == editableCurrenySubject.value?.first) {
             holder.etValue.text = editableCurrenySubject.value?.second.toString()
         } else {
-            holder.etValue.text = holder.calculateValue(
+            holder.etValue.text = formatMultipliedDecimals(
                 editableCurrenySubject.value?.second ?: BigDecimal.ZERO,
-                ratesSubject.value?.firstOrNull{ it.key == items[holder.adapterPosition].key }?.rate ?: BigDecimal.ONE
+                ratesSubject.value?.firstOrNull { it.key == currency.key }?.rate ?: BigDecimal.ONE
             )
         }
 
@@ -94,17 +96,16 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
         val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
         val etValue: TextView = itemView.findViewById(R.id.etValue)
         private var currencyKey: String? = null
-        private var rate: BigDecimal = BigDecimal.ONE
 
         init {
             Observable.combineLatest(
                 editableCurrenySubject,
                 ratesSubject,
-                BiFunction<Pair<String, BigDecimal>, List<CurrencyItem>, Triple<String, BigDecimal, BigDecimal>> { t1, t2 ->
-                    val rate = if (t1.first == t2.firstOrNull()?.key) {
-                        t2.firstOrNull{ it.key == currencyKey }?.rate ?: BigDecimal.ONE
+                BiFunction<Pair<String, BigDecimal>, List<CurrencyItem>, Triple<String, BigDecimal, BigDecimal>> { pair, listOfRates ->
+                    val rate = if (pair.first == listOfRates.firstOrNull()?.key) {
+                        listOfRates.firstOrNull{ it.key == currencyKey }?.rate ?: BigDecimal.ONE
                     } else BigDecimal.ONE
-                    Triple(t1.first, t1.second, rate)
+                    Triple(pair.first, pair.second, rate)
                 }
             )
                 .debounce(100, TimeUnit.MILLISECONDS)
@@ -112,27 +113,17 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
                     if (it.first != tvTitle.text && it.third != BigDecimal.ONE) {
-                        etValue.text = calculateValue(it.second, it.third)
+                        etValue.text = formatMultipliedDecimals(
+                            it.second,
+                            it.third
+                        )
                     }
                 }
         }
 
-        //todo to the utils
-        fun calculateValue(value: BigDecimal, rate: BigDecimal) = String.format(
-            Locale.getDefault(),
-            value
-                .multiply(rate)
-                .setScale(2, RoundingMode.HALF_UP).toString(),
-            null
-        )
-
-        fun bind(position: Int) {
-            currencyKey = items[position].key
-            rate = items[position].rate
+        fun bind(currency: CurrencyItem) {
+            currencyKey = currency.key
             tvTitle.text = currencyKey
         }
     }
 }
-
-fun CharSequence?.toBigDecimal() =
-    if (isNullOrBlank()) BigDecimal.ZERO else BigDecimal(toString())

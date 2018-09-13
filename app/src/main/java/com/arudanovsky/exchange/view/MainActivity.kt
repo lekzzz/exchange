@@ -1,9 +1,11 @@
-package com.arudanovsky.exchange
+package com.arudanovsky.exchange.view
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import com.arudanovsky.exchange.domain.CurrencyItem
+import com.arudanovsky.exchange.R
 
 class MainActivity : AppCompatActivity(), MainView {
 

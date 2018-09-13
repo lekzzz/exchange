@@ -1,5 +1,7 @@
-package com.arudanovsky.exchange
+package com.arudanovsky.exchange.view
 
+import com.arudanovsky.exchange.domain.CurrencyItem
+import com.arudanovsky.exchange.data.ApiClient
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -11,7 +13,7 @@ class MainPresenter constructor(private val view: MainView) {
 
     private var currencies: List<CurrencyItem> = emptyList()
     private var currencyKey = "EUR"
-    private var currencyKeySubj = BehaviorSubject.createDefault("EUR")
+    private var currencyKeySubj = BehaviorSubject.createDefault(currencyKey)
 
     fun onInit() {
         Observable.just(0)
@@ -52,8 +54,7 @@ class MainPresenter constructor(private val view: MainView) {
     fun positionClicked(pos: Int) {
         currencyKey = currencies[pos].key
         currencyKeySubj.onNext(currencies[pos].key)
-        val newList = arrayListOf(currencies[pos])
-        newList.addAll(currencies.filter { it != currencies[pos] })
+        val newList = arrayListOf(currencies[pos]).plus(currencies.filter { it != currencies[pos] })
         currencies = newList
         view.updateList(currencies)
     }

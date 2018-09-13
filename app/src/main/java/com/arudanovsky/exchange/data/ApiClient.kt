@@ -1,8 +1,7 @@
-package com.arudanovsky.exchange
+package com.arudanovsky.exchange.data
 
 import android.util.Log
 import com.google.gson.GsonBuilder
-import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -39,6 +38,9 @@ object ApiClient {
     }
 
     private fun provideGson() = GsonBuilder()
-        .registerTypeAdapter(RatesListDto::class.java, RateDtoDeserializer())
+        .registerTypeAdapter(
+            RatesListDto::class.java,
+            RateDtoDeserializer()
+        )
         .create()
 }
