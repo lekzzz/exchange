@@ -1,6 +1,7 @@
-package com.arudanovsky.exchange.data
+package com.arudanovsky.exchange.data.api
 
 import android.util.Log
+import com.arudanovsky.exchange.data.api.services.CurrencyService
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -9,19 +10,18 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
-
     private var retrofit: Retrofit? = null
-    fun getRetrofitClient() : ApiService {
+    fun getRetrofitClient() : CurrencyService {
         if (retrofit == null) {
             retrofit = Retrofit.Builder()
-                .baseUrl("https://revolut.duckdns.org/")
+                .baseUrl(BASE_URL)
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create(provideGson()))
                 .client(provideOkHttpClient())
                 .validateEagerly(true)
                 .build()
         }
-        return retrofit!!.create(ApiService::class.java)
+        return retrofit!!.create(CurrencyService::class.java)
     }
 
     private fun provideOkHttpClient() =
@@ -37,10 +37,5 @@ object ApiClient {
         return interceptor
     }
 
-    private fun provideGson() = GsonBuilder()
-        .registerTypeAdapter(
-            RatesListDto::class.java,
-            RateDtoDeserializer()
-        )
-        .create()
+    private fun provideGson() = GsonBuilder().create()
 }

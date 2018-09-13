@@ -1,6 +1,6 @@
 package com.arudanovsky.exchange.view
 
-import com.arudanovsky.exchange.domain.CurrencyItem
+import com.arudanovsky.exchange.domain.model.CurrencyItem
 
 interface MainView {
     fun updateList(currencies: List<CurrencyItem>)

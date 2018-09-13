@@ -4,7 +4,7 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import com.arudanovsky.exchange.domain.CurrencyItem
+import com.arudanovsky.exchange.domain.model.CurrencyItem
 import com.arudanovsky.exchange.R
 
 class MainActivity : AppCompatActivity(), MainView {
@@ -18,13 +18,10 @@ class MainActivity : AppCompatActivity(), MainView {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //bind
         recyclerView = findViewById(R.id.rvCurrencies)
 
-        //create presenter
         presenter = MainPresenter(this)
 
-        //configuration
         configureList()
 
         presenter.onInit()

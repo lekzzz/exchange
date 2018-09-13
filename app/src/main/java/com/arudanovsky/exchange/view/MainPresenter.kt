@@ -1,40 +1,28 @@
 package com.arudanovsky.exchange.view
 
-import com.arudanovsky.exchange.domain.CurrencyItem
-import com.arudanovsky.exchange.data.ApiClient
+import com.arudanovsky.exchange.domain.interactor.currency.CurrenciesInteractor
+import com.arudanovsky.exchange.domain.model.CurrencyItem
+import com.arudanovsky.exchange.domain.interactor.currency.CurrenciesInteractorImpl
+import com.arudanovsky.exchange.utils.EUR_KEY
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
-import java.math.BigDecimal
 import java.util.concurrent.TimeUnit
 
 class MainPresenter constructor(private val view: MainView) {
 
     private var currencies: List<CurrencyItem> = emptyList()
-    private var currencyKey = "EUR"
+    private var currencyKey = EUR_KEY
     private var currencyKeySubj = BehaviorSubject.createDefault(currencyKey)
+
+    private var currenciesInteractor: CurrenciesInteractor = CurrenciesInteractorImpl()
 
     fun onInit() {
         Observable.just(0)
             .flatMap {
-                ApiClient.getRetrofitClient()
+                currenciesInteractor
                 .getRates(currencyKey)
-                .map {
-                    listOf(
-                        CurrencyItem(
-                            it.baseKey,
-                            BigDecimal.ONE
-                        )
-                    ).plus(
-                        it.rates.list.map {
-                            CurrencyItem(
-                                it.key,
-                                it.rate
-                            )
-                        }
-                    )
-                }
             }
             .repeatWhen {
                 it.delay(1, TimeUnit.SECONDS)

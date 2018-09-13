@@ -8,7 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import com.arudanovsky.exchange.domain.CurrencyItem
+import com.arudanovsky.exchange.domain.model.CurrencyItem
 import com.arudanovsky.exchange.R
 import com.arudanovsky.exchange.utils.formatMultipliedDecimals
 import com.arudanovsky.exchange.utils.toBigDecimal

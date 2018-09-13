@@ -1,4 +1,4 @@
-package com.arudanovsky.exchange.domain
+package com.arudanovsky.exchange.domain.model
 
 import java.math.BigDecimal
 
