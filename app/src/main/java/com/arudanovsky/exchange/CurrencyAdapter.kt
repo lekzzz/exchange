@@ -15,6 +15,7 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
@@ -47,21 +48,38 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
     override fun getItemCount() = items.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        //todo use item
         holder.bind(holder.adapterPosition)
         val watcher = Watcher(items[holder.adapterPosition].key)
+
         holder.etValue.addTextChangedListener(watcher)
-        holder.etValue.setOnFocusChangeListener { v, hasFocus ->
+        holder.etValue.setOnFocusChangeListener { _, hasFocus ->
             watcher.active = hasFocus
-            if (hasFocus && items[holder.adapterPosition].key != editableCurrenySubject.value?.first) {
+            if (hasFocus) {
+                editableCurrenySubject.onNext(
+                    Pair(
+                        items[holder.adapterPosition].key,
+                        holder.etValue.text.toBigDecimal()
+                    )
+                )
                 clickSubject.onNext(holder.adapterPosition)
-                editableCurrenySubject.onNext(Pair(items[holder.adapterPosition].key, holder.etValue.text.toBigDecimal()))
             }
         }
+
+        if (items[holder.adapterPosition].key == editableCurrenySubject.value?.first) {
+            holder.etValue.text = editableCurrenySubject.value?.second.toString()
+        } else {
+            holder.etValue.text = holder.calculateValue(
+                editableCurrenySubject.value?.second ?: BigDecimal.ZERO,
+                ratesSubject.value?.firstOrNull{ it.key == items[holder.adapterPosition].key }?.rate ?: BigDecimal.ONE
+            )
+        }
+
         holder.itemView.setOnClickListener { holder.etValue.requestFocus() }
         holder.tvTitle.setOnClickListener { holder.etValue.requestFocus() }
     }
 
-    inner class Watcher(val currencyKey: String): TextWatcher {
+    inner class Watcher(private val currencyKey: String): TextWatcher {
         var active = false
         override fun afterTextChanged(s: Editable?) {
             if (active) editableCurrenySubject.onNext(Pair(currencyKey, s.toBigDecimal()))
@@ -75,31 +93,43 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
     inner class ViewHolder constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
         val etValue: TextView = itemView.findViewById(R.id.etValue)
+        private var currencyKey: String? = null
+        private var rate: BigDecimal = BigDecimal.ONE
 
         init {
             Observable.combineLatest(
                 editableCurrenySubject,
                 ratesSubject,
                 BiFunction<Pair<String, BigDecimal>, List<CurrencyItem>, Triple<String, BigDecimal, BigDecimal>> { t1, t2 ->
-                    Triple(t1.first, t1.second, t2.firstOrNull{ it.key == tvTitle.text }?.rate ?: BigDecimal.ONE)
+                    val rate = if (t1.first == t2.firstOrNull()?.key) {
+                        t2.firstOrNull{ it.key == currencyKey }?.rate ?: BigDecimal.ONE
+                    } else BigDecimal.ONE
+                    Triple(t1.first, t1.second, rate)
                 }
             )
                 .debounce(100, TimeUnit.MILLISECONDS)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
-
                     if (it.first != tvTitle.text && it.third != BigDecimal.ONE) {
-                        etValue.text = it.second
-                            .multiply(it.third)
-                            .setScale(2, RoundingMode.HALF_UP)
-                            .toString()
+                        etValue.text = calculateValue(it.second, it.third)
                     }
                 }
         }
 
+        //todo to the utils
+        fun calculateValue(value: BigDecimal, rate: BigDecimal) = String.format(
+            Locale.getDefault(),
+            value
+                .multiply(rate)
+                .setScale(2, RoundingMode.HALF_UP).toString(),
+            null
+        )
+
         fun bind(position: Int) {
-            tvTitle.text = items[position].key
+            currencyKey = items[position].key
+            rate = items[position].rate
+            tvTitle.text = currencyKey
         }
     }
 }
