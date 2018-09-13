@@ -1,4 +1,4 @@
-package com.arudanovsky.exchange.view
+package com.arudanovsky.exchange.view.currencies
 
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
