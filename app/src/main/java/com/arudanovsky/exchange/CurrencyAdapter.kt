@@ -8,9 +8,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.functions.BiFunction
+import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.util.concurrent.TimeUnit
 
 class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
 
@@ -30,12 +35,11 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
                     oldItems[oldItemPosition].rate.compareTo(value[newItemPosition].rate) == 0
             })
             diffCallback.dispatchUpdatesTo(this)
-//            ratesSubject.onNext(value)
         }
 
     val clickSubject = BehaviorSubject.create<Int>()
     val editableCurrenySubject = BehaviorSubject.create<Pair<String, BigDecimal>>()
-//    val ratesSubject = BehaviorSubject.createDefault()
+    val ratesSubject = BehaviorSubject.create<List<CurrencyItem>>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_currency, parent, false))
@@ -47,8 +51,11 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
         val watcher = Watcher(items[holder.adapterPosition].key)
         holder.etValue.addTextChangedListener(watcher)
         holder.etValue.setOnFocusChangeListener { v, hasFocus ->
-            if (hasFocus) clickSubject.onNext(holder.adapterPosition)
             watcher.active = hasFocus
+            if (hasFocus && items[holder.adapterPosition].key != editableCurrenySubject.value?.first) {
+                clickSubject.onNext(holder.adapterPosition)
+                editableCurrenySubject.onNext(Pair(items[holder.adapterPosition].key, holder.etValue.text.toBigDecimal()))
+            }
         }
         holder.itemView.setOnClickListener { holder.etValue.requestFocus() }
         holder.tvTitle.setOnClickListener { holder.etValue.requestFocus() }
@@ -68,21 +75,31 @@ class CurrencyAdapter : RecyclerView.Adapter<CurrencyAdapter.ViewHolder>() {
     inner class ViewHolder constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
         val etValue: TextView = itemView.findViewById(R.id.etValue)
-        var rate: BigDecimal = BigDecimal.ONE
-        private var pos: Int = 0
 
         init {
-            editableCurrenySubject
+            Observable.combineLatest(
+                editableCurrenySubject,
+                ratesSubject,
+                BiFunction<Pair<String, BigDecimal>, List<CurrencyItem>, Triple<String, BigDecimal, BigDecimal>> { t1, t2 ->
+                    Triple(t1.first, t1.second, t2.firstOrNull{ it.key == tvTitle.text }?.rate ?: BigDecimal.ONE)
+                }
+            )
+                .debounce(100, TimeUnit.MILLISECONDS)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
-                    if (it.first != tvTitle.text)
-                        etValue.text = it.second.multiply(rate).setScale(2, RoundingMode.HALF_UP).toString()
+
+                    if (it.first != tvTitle.text && it.third != BigDecimal.ONE) {
+                        etValue.text = it.second
+                            .multiply(it.third)
+                            .setScale(2, RoundingMode.HALF_UP)
+                            .toString()
+                    }
                 }
         }
 
         fun bind(position: Int) {
-            this.pos = position
             tvTitle.text = items[position].key
-            rate = items[position].rate
         }
     }
 }
