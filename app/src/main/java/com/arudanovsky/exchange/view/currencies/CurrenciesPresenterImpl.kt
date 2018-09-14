@@ -4,6 +4,7 @@ import com.arudanovsky.exchange.domain.interactor.currency.CurrenciesInteractor
 import com.arudanovsky.exchange.domain.model.CurrencyItem
 import com.arudanovsky.exchange.domain.interactor.currency.CurrenciesInteractorImpl
 import com.arudanovsky.exchange.utils.EUR_KEY
+import com.arudanovsky.exchange.utils.exponentialBackoff
 import com.arudanovsky.exchange.view.base.BasePresenter
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -29,17 +30,20 @@ class CurrenciesPresenterImpl constructor(view: CurrenciesView): BasePresenter<C
             .repeatWhen {
                 it.delay(1, TimeUnit.SECONDS)
             }
+            .exponentialBackoff(10, 2.0)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doOnSubscribe { addDisposable(it) }
-            .subscribe {
+            .subscribe( {
                 if (currencies.isEmpty() && it.isNotEmpty()) {
                     currencies = it
                     view.updateList(it)
                 } else {
                     view.updateRates(it)
                 }
-            }
+            }, {
+                view.showError(it.message.toString())
+            })
     }
 
     override fun positionClicked(pos: Int) {
